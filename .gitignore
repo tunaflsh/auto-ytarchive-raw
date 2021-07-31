@@ -4,6 +4,7 @@ test.py
 fetched.json
 chat/
 logs/
+.idea/
 callback/callback.py
 callback/chat.py
 const.py
