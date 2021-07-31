@@ -31,6 +31,7 @@ ENABLED_MODULES = {
 # If you dont know how to create a Discord webhook read here: https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks
 DISCORD_WEBHOOK_URL = None
 DISCORD_SEND_FILES = False
+DISCORD_TOKEN = None
 
 TELEGRAM_BOT_TOKEN = None
 TELEGRAM_CHAT_ID = None
