@@ -277,12 +277,11 @@ try:
                 if const.DOWNLOAD and not fetched[channel_name][video_id]["downloaded"]:
                     # Start the download
                     try:
-                        fetched[channel_name][video_id]["downloaded"] = True
-                        live_download.download(video_id, fetched[channel_name][video_id]["downloaded"])
+                        setDownloaded = live_download.download(video_id)
+                        fetched[channel_name][video_id]["downloaded"] = setDownloaded
                     except:
                         print("Error Live Downloading")
                         fetched[channel_name][video_id]["downloaded"] = False
-                        pass
 
                 save()
 
