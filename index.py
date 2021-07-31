@@ -63,7 +63,7 @@ def save():
 
     with open(const.FETCHED_JSON, "w", encoding="utf8") as f:
         json.dump(fetched, f, indent=4, ensure_ascii=False)
-    
+
     save_lock.release()
 
 if os.path.isfile(const.FETCHED_JSON):
@@ -139,7 +139,7 @@ try:
             for video_id in to_del:
                 chats.pop(video_id)
                 utils.log(f" Chat instance {video_id} has been cleared.")
-            
+
         chat_expiry_task = utils.RepeatedTimer(const.CHAT_TASK_CLEAR_INTERVAL, clear_chat)
 
     while True:
@@ -176,21 +176,30 @@ try:
                                 utils.warn(f" Chat file for {video_id} not found. This shouldn't happen, maybe someone stealed it...?")
 
                         message = text.get_private_check_text(status, video_id).format(video_id=video_id, channel_name=channel_name, channel_id=channel_id)
-                        
+
                         utils.notify(message, files)
                         fetched[channel_name][video_id]["skipPrivateCheck"] = True
                         save()
-                            
-                        utils.log(f" {message}")
 
-            is_live = utils.is_live(channel_id)
+                        utils.log(f" {message}")
+            try:
+                is_live = utils.is_live(channel_id)
+            except Exception as e:
+                print(e)
+                print("Unknown Error while checking if channel is live")
+                continue
+
             if is_live:
                 utils.log(f"[{channel_name}] On live!")
 
                 video_url = is_live
 
                 video_id = getjson.get_youtube_id(video_url)
-                m3u8_url = getm3u8.get_m3u8(video_url)
+                try:
+                    m3u8_url = getm3u8.get_m3u8(video_url)
+                except:
+                    print("\nError might not be live, Skip saving json")
+                    continue
                 m3u8_id = getm3u8.get_m3u8_id(m3u8_url)
 
                 if channel_name not in fetched:
@@ -199,16 +208,18 @@ try:
                             "fregments": {},
                             "skipPrivateCheck": False,
                             "skipOnliveNotify": False,
-                            "multiManifestNotify": 1
+                            "multiManifestNotify": 1,
+                            "downloaded": False
                         }
                     }
-                
+
                 if video_id not in fetched[channel_name]:
                     fetched[channel_name][video_id] = {
                         "fregments": {},
                         "skipPrivateCheck": False,
                         "skipOnliveNotify": False,
-                        "multiManifestNotify": 1
+                        "multiManifestNotify": 1,
+                        "downloaded": False
                     }
 
                 filepath = os.path.join(const.BASE_JSON_DIR, f"{m3u8_id}.json")
@@ -227,7 +238,7 @@ try:
                     if const.ENABLED_MODULES_ONLIVE["discord"]:
                         discord.send(const.DISCORD_WEBHOOK_URL_ONLIVE, onlive_message, version=const.VERSION)
                         fetched[channel_name][video_id]["skipOnliveNotify"] = True
-                    if const.ENABLED_MODULES_ONLIVE["telegram"]:    
+                    if const.ENABLED_MODULES_ONLIVE["telegram"]:
                         telegram.send(const.TELEGRAM_BOT_TOKEN_ONLIVE, const.TELEGRAM_CHAT_ID_ONLIVE, onlive_message)
                         fetched[channel_name][video_id]["skipOnliveNotify"] = True
                     if const.ENABLED_MODULES_ONLIVE["pushalert"]:
@@ -257,7 +268,24 @@ try:
 
                         utils.log(f" {message}")
 
+                # Live Download
+                import subprocess
+                import live_download
+                import sys
+
+                # If live download is set to True and has not already been downloaded
+                if const.DOWNLOAD and not fetched[channel_name][video_id]["downloaded"]:
+                    # Start the download
+                    try:
+                        fetched[channel_name][video_id]["downloaded"] = True
+                        live_download.download(video_id, fetched[channel_name][video_id]["downloaded"])
+                    except:
+                        print("Error Live Downloading")
+                        fetched[channel_name][video_id]["downloaded"] = False
+                        pass
+
                 save()
+
             else:
                 utils.log(f"[{channel_name}] Not on live.")
 
