@@ -3,9 +3,13 @@ jsons/
 test.py
 fetched.json
 chat/
+logs/
 callback/callback.py
 callback/chat.py
 const.py
 .vscode/
 channels.json
 text.py
+ffmpeg.exe
+ffprobe.exe
+cookie.txt
