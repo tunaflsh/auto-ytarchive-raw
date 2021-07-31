@@ -273,7 +273,7 @@ try:
                 import sys
 
                 # If os.system call of python index.py has an extra argument(in this case -d) to trigger download
-                if const.DOWNLOAD and not fetched[channel_name][video_id]["downloaded"]:
+                if const.DOWNLOAD is not None and not fetched[channel_name][video_id]["downloaded"]:
                     # Start the download
                     try:
                         setDownloaded = live_download.download(video_id)
