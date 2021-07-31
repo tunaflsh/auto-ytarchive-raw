@@ -6,7 +6,12 @@ def get_m3u8(url):
     with utils.urlopen(url) as response:
         html = response.read().decode()
         regex = r"hlsManifestUrl\":\"([^\"]+)"
-        result = re.search(regex, html).group(1)
+        try:
+            result = re.search(regex, html).group(1)
+        except AttributeError as att_error:
+            print("Result: ", re.search(regex, html))
+            print(att_error)
+
 
         return result
 
