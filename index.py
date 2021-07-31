@@ -274,7 +274,7 @@ try:
                 import sys
 
                 # If live download is set to True and has not already been downloaded
-                if const.DOWNLOAD and not fetched[channel_name][video_id]["downloaded"]:
+                if const.DOWNLOAD is not None and not fetched[channel_name][video_id]["downloaded"]:
                     # Start the download
                     try:
                         setDownloaded = live_download.download(video_id)
