@@ -230,8 +230,12 @@ try:
                         utils.log(f"[{channel_name}] Downloading chat...")
                         start_timestamp = video_data["metadata"]["startTimestamp"] if "startTimestamp" in video_data["metadata"] else None
                         chat_file = os.path.join(const.CHAT_DIR, f"{video_id}.chat")
-                        chats[video_id] = getchat.ChatArchiver(video_url, chat_file, start_timestamp=start_timestamp)
-                        fetched[channel_name][video_id]["chat"] = chat_file
+                        try:
+                            chats[video_id] = getchat.ChatArchiver(video_url, chat_file,
+                                                                   start_timestamp=start_timestamp)
+                            fetched[channel_name][video_id]["chat"] = chat_file
+                        except:
+                            print("Error getting chat. Maybe live already ended...?")
 
                 if not fetched[channel_name][video_id]["skipOnliveNotify"]:
                     onlive_message = text.get_onlive_message(video_id=video_id).format(video_id=video_id, channel_name=channel_name, channel_id=channel_id)
