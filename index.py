@@ -169,11 +169,12 @@ try:
                         log_file_path = os.path.join(const.LOGS_DIR, f"{video_id}.html")
                         if os.path.isfile(log_file_path):
                             files.append(log_file_path)
-                        if "chat" in fetched[channel_name][video_id]:
-                            if os.path.isfile(fetched[channel_name][video_id]["chat"]):
-                                files.append(fetched[channel_name][video_id]["chat"])
-                            else:
-                                utils.warn(f" Chat file for {video_id} not found. This shouldn't happen, maybe someone stealed it...?")
+                        # Don't send chat file as it can cause socket.timeout: The write operation timed out/thread exception when sending chat
+                        # if "chat" in fetched[channel_name][video_id]:
+                        #     if os.path.isfile(fetched[channel_name][video_id]["chat"]):
+                        #         files.append(fetched[channel_name][video_id]["chat"])
+                        #     else:
+                        #         utils.warn(f" Chat file for {video_id} not found. This shouldn't happen, maybe someone stealed it...?")
 
                         message = text.get_private_check_text(status, video_id).format(video_id=video_id, channel_name=channel_name, channel_id=channel_id)
 
