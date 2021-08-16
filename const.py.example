@@ -23,7 +23,7 @@ IP_POOL = None
 ENABLE_PRIVATE_CHECK = False
 
 # Enable Live stream download
-DOWNLOAD = False
+DOWNLOAD = None
 
 # Callbacks
 ENABLED_MODULES = {
