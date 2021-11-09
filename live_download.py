@@ -5,7 +5,7 @@ def download(video_id):
     # Download if download process hasn't already been initiated
     # change back to /k
     command_list = ['start', 'cmd', '/k']
-    command_list += ['ytarchive.py', '-o',
+    command_list += ['ytarchive.exe', '-o',
                      "NoArchive\%(channel)s\%(upload_date)s - %(title)s\%(upload_date)s - %(title)s (%(id)s)",
                      '--add-metadata', '-t', '--vp9', '--write-description', '--write-thumbnail', '--threads', '2',
                      '-w']
