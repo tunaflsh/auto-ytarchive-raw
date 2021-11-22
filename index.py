@@ -190,6 +190,12 @@ try:
                         save()
 
                         utils.log(f" {message}")
+            try:
+                is_live = utils.is_live(channel_id)
+            except Exception as e:
+                print(e)
+                print("Unknown Error while checking if channel is live")
+                continue
 
                         if const.PDOWNLOAD is not None:
                             private_download.download(files)
