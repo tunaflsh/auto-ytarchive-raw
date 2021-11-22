@@ -10,5 +10,3 @@ async def on_ready():
     os.system("python index.py")
 
 client.run(const.DISCORD_TOKEN)
-
-

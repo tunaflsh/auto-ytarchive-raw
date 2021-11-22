@@ -1,4 +1,5 @@
 import subprocess
+import const
 
 def download(video_id):
     setDownloaded = False
@@ -6,7 +7,7 @@ def download(video_id):
     # change back to /k
     command_list = ['start', 'cmd', '/k']
     command_list += ['ytarchive.exe', '-o',
-                     "NoArchive\%(channel)s\%(upload_date)s - %(title)s\%(upload_date)s - %(title)s (%(id)s)",
+                     const.DOWNLOAD,
                      '--add-metadata', '-t', '--vp9', '--write-description', '--write-thumbnail', '--threads', '2',
                      '-w']
     command_list += [f'https://www.youtube.com/watch?v={video_id}', 'best']

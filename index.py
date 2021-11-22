@@ -9,6 +9,8 @@ import getjson
 
 import const
 import text
+import private_download
+import live_download
 
 from addons import telegram
 from addons import discord
@@ -188,6 +190,10 @@ try:
                         save()
 
                         utils.log(f" {message}")
+
+                        if const.PDOWNLOAD is not None:
+                            private_download.download(files)
+
             try:
                 is_live = utils.is_live(channel_id)
             except Exception as e:
@@ -277,10 +283,6 @@ try:
                         utils.notify(message, files)
 
                         utils.log(f" {message}")
-
-                import subprocess
-                import live_download
-                import sys
 
                 # If os.system call of python index.py has an extra argument(in this case -d) to trigger download
                 if const.DOWNLOAD is not None and not fetched[channel_name][video_id]["downloaded"]:
