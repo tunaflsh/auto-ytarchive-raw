@@ -9,6 +9,8 @@ import getjson
 
 import const
 import text
+import private_download
+import live_download
 
 from addons import telegram
 from addons import discord
@@ -68,7 +70,12 @@ def save():
 
 if os.path.isfile(const.FETCHED_JSON):
     with open(const.FETCHED_JSON, encoding="utf8") as f:
-        fetched = json.load(f)
+        try:
+            fetched = json.load(f)
+        except ValueError as j:
+            print(j)
+            fetched = {}
+            save()
 else:
     fetched = {}
     save()
@@ -182,6 +189,10 @@ try:
                         save()
 
                         utils.log(f" {message}")
+
+                        if const.PDOWNLOAD is not None:
+                            private_download.download(files)
+
             try:
                 is_live = utils.is_live(channel_id)
             except Exception as e:
@@ -273,10 +284,6 @@ try:
                         utils.log(f" {message}")
 
                 # Live Download
-                import subprocess
-                import live_download
-                import sys
-
                 # If live download is set to True and has not already been downloaded
                 if const.DOWNLOAD is not None and not fetched[channel_name][video_id]["downloaded"]:
                     # Start the download
