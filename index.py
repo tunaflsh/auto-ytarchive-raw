@@ -11,6 +11,7 @@ import const
 import text
 import private_download
 import live_download
+from urllib.error import HTTPError
 
 from addons import telegram
 from addons import discord
@@ -162,7 +163,12 @@ try:
                         elif fetched[channel_name][video_id]["skipPrivateCheck"]:
                             continue
 
-                        status = utils.get_video_status(video_id)
+                        # Can help catch HTTP 429 Too Many Requests response status code
+                        try:
+                            status = utils.get_video_status(video_id)
+                        except HTTPError as err:
+                            print(f'[ERROR] {err}')
+                            continue
 
                         if status is utils.PlayabilityStatus.OK:
                             continue
@@ -190,12 +196,6 @@ try:
                         save()
 
                         utils.log(f" {message}")
-            try:
-                is_live = utils.is_live(channel_id)
-            except Exception as e:
-                print(e)
-                print("Unknown Error while checking if channel is live")
-                continue
 
                         if const.PDOWNLOAD is not None:
                             private_download.download(files)
@@ -204,7 +204,7 @@ try:
                 is_live = utils.is_live(channel_id)
             except Exception as e:
                 print(e)
-                print("Unknown Error while checking if channel is live")
+                print("[ERROR] Unexpected Error while checking if channel is live")
                 continue
 
             if is_live:
@@ -215,8 +215,9 @@ try:
                 video_id = getjson.get_youtube_id(video_url)
                 try:
                     m3u8_url = getm3u8.get_m3u8(video_url)
-                except:
-                    print("\nError might not be live, Skip saving json")
+                except Exception as e:
+                    print(e)
+                    print("\n[ERROR] Unexpected error, might not be live, Skip saving json")
                     continue
                 m3u8_id = getm3u8.get_m3u8_id(m3u8_url)
 
@@ -253,7 +254,7 @@ try:
                                                                    start_timestamp=start_timestamp)
                             fetched[channel_name][video_id]["chat"] = chat_file
                         except chat_downloader.errors.NoChatReplay:
-                            print("Error getting chat. Maybe live already ended...?")
+                            print("[ERROR] Error getting chat. Maybe live already ended...?")
 
                 if not fetched[channel_name][video_id]["skipOnliveNotify"]:
                     onlive_message = text.get_onlive_message(video_id=video_id).format(video_id=video_id, channel_name=channel_name, channel_id=channel_id)
@@ -296,8 +297,9 @@ try:
                     try:
                         setDownloaded = live_download.download(video_id)
                         fetched[channel_name][video_id]["downloaded"] = setDownloaded
-                    except:
-                        print("Error Live Downloading")
+                    except Exception as e:
+                        print(e)
+                        print("[ERROR] Error Live Downloading")
                         fetched[channel_name][video_id]["downloaded"] = False
                         pass
 
