@@ -23,7 +23,9 @@ IP_POOL = None
 ENABLE_PRIVATE_CHECK = False
 
 # Enable Live stream download
+# Replace None with file path e.g. DOWNLOAD = r"H:\DownloadArchive\%(channel)s\%(upload_date)s - %(title)s\%(upload_date)s - %(title)s (%(id)s)"
 DOWNLOAD = None
+PDOWNLOAD = None
 
 # Callbacks
 ENABLED_MODULES = {
