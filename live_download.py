@@ -1,6 +1,7 @@
 import subprocess
 import const
 
+
 def download(video_id):
     setDownloaded = False
     # Download if download process hasn't already been initiated
@@ -13,11 +14,11 @@ def download(video_id):
     command_list += [f'https://www.youtube.com/watch?v={video_id}', 'best']
 
     try:
-        print("Downloading Live Stream")
+        print("[INFO] Downloading Live Stream")
         output = subprocess.run(command_list, check=True, shell=True)
         # If theres an error then this ensures a redownload, but only works if the program crashes by itself immediately
-        print("[Debug]Output: ", output)
-        print("[Debug]Return Code:", output.returncode)
+        # print("[Debug]Output: ", output)
+        # print("[Debug]Return Code:", output.returncode)
         if output.returncode != 0:
             setDownloaded = False
         setDownloaded = True
