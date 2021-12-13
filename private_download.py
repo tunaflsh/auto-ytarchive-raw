@@ -1,11 +1,13 @@
 import subprocess
 import os
+import const
+
 
 def download(files):
     for file in reversed(files):
         if '.json' in file:
             file = os.getcwd() + '\\' + file
-            command_list = f'start cmd /k ytarchive-raw-go -t 12 -i "{file}"'
+            command_list = f'start cmd /k ytarchive-raw-go -t {const.PDOWNLOAD_THREADS} -i "{file} -o {const.PDOWNLOAD}"'
             try:
                 print("[INFO] Downloading Video")
                 output = subprocess.run(command_list, shell=True)
