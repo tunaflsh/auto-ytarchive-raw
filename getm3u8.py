@@ -2,26 +2,26 @@ import urllib.request
 import re
 import utils
 
+
 def get_m3u8(url):
-    with utils.urlopen(url) as response:
-        html = response.read().decode()
-        regex = r"hlsManifestUrl\":\"([^\"]+)"
-        try:
-            result = re.search(regex, html).group(1)
-        except AttributeError as att_error:
-            print("Result: ", re.search(regex, html))
-            print(att_error)
+    try:
+        with utils.urlopen(url, use_cookie=False) as response:
+            html = response.read().decode()
+            regex = r"hlsManifestUrl\":\"([^\"]+)"
+            result = re.search(regex, html).group(1)   
+    except AttributeError as att_error:
+        with utils.urlopen(url, use_cookie=True) as response:
+            html = response.read().decode()
+            regex = r"hlsManifestUrl\":\"([^\"]+)"
+            try:
+                result = re.search(regex, html).group(1)
+            except AttributeError as att_error:
+                print("Result: ", re.search(regex, html))
+                print(att_error)
+    return result
 
-
-        return result
 
 def get_m3u8_id(m3u8_url):
     regex = r"/id/(.+?)/"
     result = re.search(regex, m3u8_url).group(1)
-
-    # sometimes youtube sends the ids in the format
-    # `<video id>.<number>~<random numbers>` so just
-    # ignore the random part and keep the relevant ones
-    result = result.split("~")[0]
-
     return result
