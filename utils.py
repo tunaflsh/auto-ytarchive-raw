@@ -184,7 +184,6 @@ def is_live(channel_id, use_cookie=False, retry=0):
     url = f"https://www.youtube.com/channel/{channel_id}/live"
     with urlopen(url, use_cookie=use_cookie) as response:
         html = response.read().decode()
-
         try:
             og_url = re.search(
                 r'<meta property="og:url" content="(.+?)">', html).group(1)
@@ -194,26 +193,26 @@ def is_live(channel_id, use_cookie=False, retry=0):
                     r'<link rel="canonical" href="(.+?)">', html).group(1)
             except:
                 if retry < const.HTTP_RETRY:
-                    return is_live(channel_id, use_cookie=use_cookie, retry=retry + 1) # Try again, sth weird happened
+                    return is_live(channel_id, use_cookie=use_cookie, retry=retry + 1)  # Try again, sth weird happened
                 else:
-                    return False
+                    return False, use_cookie
 
         if "watch?v=" in og_url:
             if 'hlsManifestUrl' not in html:
                 if '"status":"LOGIN_REQUIRED"' in html:
                     if use_cookie:
-                        return False  # No permission
+                        return False, use_cookie  # No permission
                     else:
                         # Try again with cookie
                         return is_live(channel_id, use_cookie=True, retry=retry)
-                return False  # No stream found
-            return og_url  # Stream found
+                return False, use_cookie  # No stream found
+            return og_url, use_cookie  # Stream found
         elif "/channel/" in og_url or "/user/" in og_url:
-            return False
+            return False, use_cookie
         else:
             warn(
                 f" Something weird happened on checking Live for {channel_id}...")
-            return False
+            return False, use_cookie
 
 # 2021.5.7 Youtube chokes for PlayabilityStatus.REMOVED
 # if PlayabilityStatus.REMOVED, we now check 3 times for accuracy.
@@ -231,6 +230,8 @@ def get_video_status(video_id):
                 return PlayabilityStatus.MEMBERS_ONLY
             elif '"status":"UNPLAYABLE"' in html:
                 return PlayabilityStatus.COPYRIGHTED
+            elif '"status":"LOGIN_REQUIRED"' in html and '"reason":"Sign in to confirm your age"' in html:
+                return PlayabilityStatus.LOGIN_REQUIRED
             elif '"status":"LOGIN_REQUIRED"' in html:
                 return PlayabilityStatus.PRIVATED
             elif '"status":"ERROR"' in html:
@@ -243,8 +244,6 @@ def get_video_status(video_id):
                 return PlayabilityStatus.OK
             elif '"status":"LIVE_STREAM_OFFLINE"' in html:
                 return PlayabilityStatus.OFFLINE
-            elif '"status":"LOGIN_REQUIRED"' in html:
-                return PlayabilityStatus.LOGIN_REQUIRED
             else:
                 with open(os.path.join(const.LOGS_DIR, f"{video_id}.html"), "w", encoding="utf8") as f:
                     f.write(html)
