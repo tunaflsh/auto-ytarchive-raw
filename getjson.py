@@ -6,6 +6,8 @@ import base64
 import datetime
 import json
 
+import requests
+
 import utils
 
 VERSION = "1.5"
@@ -27,7 +29,8 @@ PRIORITY = {
 }
 
 def parse(regex, html_raw):
-    return html.unescape(re.search(regex, html_raw).group(1))
+    match = re.search(regex, html_raw).group(1) or re.search(regex, html_raw).group(2)
+    return html.unescape(match)
 
 def get_youtube_id(url):
     try:
@@ -37,7 +40,6 @@ def get_youtube_id(url):
             html_raw = response.read().decode()
             regex = r'<meta itemprop="videoId" content="(.+?)">'
             result = re.search(regex, html_raw).group(1)
-
             return result
 
 def get_youtube_video_info(video_id, html_raw):
@@ -46,7 +48,7 @@ def get_youtube_video_info(video_id, html_raw):
         "title": parse(r'<meta name="title" content="(.+?)">', html_raw),
         "id": video_id,
         "channelName": parse(r'<link itemprop="name" content="(.+?)">', html_raw),
-        "channelURL": "https://www.youtube.com/channel/" + parse(r'<meta itemprop="channelId" content="(.+?)">', html_raw),
+        "channelURL": "https://www.youtube.com/channel/" + parse(r'<meta itemprop="channelId" content="(.+?)">|browseId":"(\w{24})"', html_raw),
         "description": parse(r'"description":{"simpleText":"(.+?)"},', html_raw).replace("\\n", "\n") if '"description":{"simpleText":"' in html_raw else "",
         "thumbnail": get_image(thumbnail_url),
         "thumbnailUrl": thumbnail_url,
@@ -60,7 +62,7 @@ def get_image(url):
 
         return f"data:image/jpeg;base64,{b64}"
 
-def build_req(video_id):
+def build_req(video_id, use_cookie=False):
     video_url = f"https://www.youtube.com/watch?v={video_id}"
     info_req = urllib.request.Request(
         video_url, 
@@ -68,12 +70,13 @@ def build_req(video_id):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36',
         }
     )
-    return utils.urlopen(info_req)
+    return utils.urlopen(info_req, use_cookie=use_cookie)
 
-def get_json(video_url, file=None):
+
+def get_json(video_url, file=None, require_cookie=False):
     video_id = get_youtube_id(video_url)
 
-    with build_req(video_id) as response:
+    with build_req(video_id, require_cookie) as response:
         data = response.read().decode()
 
         match = re.findall(r'"itag":(\d+),"url":"([^"]+)"', data)
@@ -107,11 +110,13 @@ def get_json(video_url, file=None):
                 utils.warn(f" {video_id} got empty video sources.")
             if best["audio"] is None:
                 utils.warn(f" {video_id} got empty audio sources.")
-            
-            utils.warn(" Printng match...")
+
+            utils.warn("Failed to get json with cookies")
             print(match)
             
         if file is not None:
             with open(file, "w", encoding="utf8") as f:
                 json.dump(best, f, indent=4, ensure_ascii=False)
         return best
+
+
