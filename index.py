@@ -3,6 +3,8 @@ import time
 import os
 import threading
 
+import chat_downloader
+
 import utils
 import getm3u8
 import getjson
@@ -17,6 +19,8 @@ from addons import telegram
 from addons import discord
 from addons import pushalert
 from addons import fcm
+
+import traceback
 
 if const.CALLBACK_AFTER_EXPIRY:
     from callback import callback as expiry_callback
@@ -123,34 +127,35 @@ def clear_expiry():
 
     save()
 
-try:
-    clear_expiry()
-    expiry_task = utils.RepeatedTimer(const.TIME_BETWEEN_CLEAR, clear_expiry)
-    if const.CHAT_DIR:
-        def get_channel_name_by_video_id(video_id):
-            for channel_name in fetched:
-                if video_id in fetched[channel_name]:
-                    return channel_name
-            return None
 
-        def clear_chat():
-            utils.log(f" Running chat instance clearing task.")
-            global chats
-            to_del = []
-            for video_id in chats:
-                if chats[video_id].is_finished():
-                    if const.CHAT_CALLBACK_AFTER_EXPIRY:
-                        channel_name = get_channel_name_by_video_id(video_id)
-                        chat_callback.callback(chats[video_id], channel_name=channel_name, video_id=video_id)
-                    to_del.append(video_id)
-                    utils.log(f" Chat instance {video_id} has been queued to be cleared.")
-            for video_id in to_del:
-                chats.pop(video_id)
-                utils.log(f" Chat instance {video_id} has been cleared.")
+clear_expiry()
+expiry_task = utils.RepeatedTimer(const.TIME_BETWEEN_CLEAR, clear_expiry)
+if const.CHAT_DIR:
+    def get_channel_name_by_video_id(video_id):
+        for channel_name in fetched:
+            if video_id in fetched[channel_name]:
+                return channel_name
+        return None
 
-        chat_expiry_task = utils.RepeatedTimer(const.CHAT_TASK_CLEAR_INTERVAL, clear_chat)
+    def clear_chat():
+        utils.log(f" Running chat instance clearing task.")
+        global chats
+        to_del = []
+        for video_id in chats:
+            if chats[video_id].is_finished():
+                if const.CHAT_CALLBACK_AFTER_EXPIRY:
+                    channel_name = get_channel_name_by_video_id(video_id)
+                    chat_callback.callback(chats[video_id], channel_name=channel_name, video_id=video_id)
+                to_del.append(video_id)
+                utils.log(f" Chat instance {video_id} has been queued to be cleared.")
+        for video_id in to_del:
+            chats.pop(video_id)
+            utils.log(f" Chat instance {video_id} has been cleared.")
 
-    while True:
+    chat_expiry_task = utils.RepeatedTimer(const.CHAT_TASK_CLEAR_INTERVAL, clear_chat)
+
+while True:
+    try:
         for channel_name, channel_id in CHANNELS.items():
             # Check for privated videos
             if const.ENABLE_PRIVATE_CHECK:
@@ -166,7 +171,7 @@ try:
                         # Can help catch HTTP 429 Too Many Requests response status code
                         try:
                             status = utils.get_video_status(video_id)
-                        except HTTPError as err:
+                        except (HTTPError, TimeoutError) as err:
                             print(f'[ERROR] {err}')
                             continue
 
@@ -201,7 +206,7 @@ try:
                             private_download.download(files)
 
             try:
-                is_live = utils.is_live(channel_id)
+                is_live, require_cookie = utils.is_live(channel_id)
             except Exception as e:
                 print(e)
                 print("[ERROR] Unexpected Error while checking if channel is live")
@@ -242,7 +247,7 @@ try:
                     }
 
                 filepath = os.path.join(const.BASE_JSON_DIR, f"{m3u8_id}.json")
-                video_data = getjson.get_json(video_url, filepath)
+                video_data = getjson.get_json(video_url, filepath, require_cookie)
 
                 if const.CHAT_DIR:
                     if video_id not in chats:
@@ -295,7 +300,7 @@ try:
                 if const.DOWNLOAD is not None and not fetched[channel_name][video_id]["downloaded"]:
                     # Start the download
                     try:
-                        setDownloaded = live_download.download(video_id)
+                        setDownloaded = live_download.download(video_id, require_cookie)
                         fetched[channel_name][video_id]["downloaded"] = setDownloaded
                     except Exception as e:
                         print(e)
@@ -310,12 +315,18 @@ try:
 
             utils.log(f" Sleeping for {const.TIME_BETWEEN_CHECK} secs...")
             time.sleep(const.TIME_BETWEEN_CHECK)
-except KeyboardInterrupt:
-    utils.log(" Forced stop.")
-finally:
-    expiry_task.stop()
+    except Exception as k:
+        print(k)
+        print(f"[traceback] {traceback.format_exc()}")
+        utils.log(" Forced stop.")
+    finally:
+        # I don't want program to ever stop so continue
+        continue
+        expiry_task.stop()
 
-    if const.CHAT_DIR:
-        chat_expiry_task.stop()
-        for video_id in chats:
-            chats[video_id].stop()
+        if const.CHAT_DIR:
+            chat_expiry_task.stop()
+            for video_id in chats:
+                chats[video_id].stop()
+        # continue
+        
