@@ -1,0 +1,4 @@
+zstandard==0.15.2
+requests==2.28.1
+chat_downloader==0.2.4
+Brotli==1.0.9
