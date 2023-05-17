@@ -1,5 +1,6 @@
 import utils
 
+
 def get_private_check_text(status, video_id=None):
     # import getjson
     # with getjson.build_req(video_id) as res:
@@ -16,20 +17,23 @@ def get_private_check_text(status, video_id=None):
     elif status is utils.PlayabilityStatus.COPYRIGHTED:
         return "[{video_id}](https://youtu.be/{video_id}) is copyrighted on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
     elif status is utils.PlayabilityStatus.UNKNOWN:
-        return "[{video_id}](https://youtu.be/{video_id}) occurred sth weird on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
+        return "[{video_id}](https://youtu.be/{video_id}) something weird occurred on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
     elif status is utils.PlayabilityStatus.MEMBERS_ONLY:
         return "[{video_id}](https://youtu.be/{video_id}) is member-only on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
     elif status is utils.PlayabilityStatus.LOGIN_REQUIRED:
-        return "[{video_id}](https://youtu.be/{video_id}) requires login to watch on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
+        return "[{video_id}](https://youtu.be/{video_id}) requires login on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
     elif status is utils.PlayabilityStatus.OFFLINE: # Should not be here though. But I do dumb things.
-        return "[{video_id}](https://youtu.be/{video_id}) offlined on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
+        return "[{video_id}](https://youtu.be/{video_id}) offline on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
     elif status is utils.PlayabilityStatus.UNLISTED:
         return "[{video_id}](https://youtu.be/{video_id}) is unlisted on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
     else:
-        return "[{video_id}](https://youtu.be/{video_id}) occurred sth very weird on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
+        return "[{video_id}](https://youtu.be/{video_id}) something very weird occurred on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
+
 
 def get_onlive_message(video_id):
     return "[{video_id}](https://youtu.be/{video_id}) is live on [{channel_name}](https://www.youtube.com/channel/{channel_id})!"
+
+
 # If you leave this empty it will not posts the multiple manifest messages
 MULTI_MANIFEST_MESSAGE = "[{video_id}](https://youtu.be/{video_id}) has multiple manifest on [{channel_name}](https://www.youtube.com/channel/{channel_id})!"
 
