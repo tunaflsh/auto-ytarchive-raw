@@ -5,9 +5,6 @@ import html
 import base64
 import datetime
 import json
-
-import requests
-
 import utils
 
 VERSION = "1.5"
@@ -28,9 +25,11 @@ PRIORITY = {
     ]
 }
 
+
 def parse(regex, html_raw):
     match = re.search(regex, html_raw).group(1) or re.search(regex, html_raw).group(2)
     return html.unescape(match)
+
 
 def get_youtube_id(url):
     try:
@@ -42,18 +41,20 @@ def get_youtube_id(url):
             result = re.search(regex, html_raw).group(1)
             return result
 
-def get_youtube_video_info(video_id, html_raw):
+
+def get_youtube_video_info(video_id, channel_id, channel_name, html_raw):
     thumbnail_url = parse(r'<link rel="image_src" href="(.+?)">', html_raw) if '<link rel="image_src" href="' in html_raw else f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
     return {
         "title": parse(r'<meta name="title" content="(.+?)">', html_raw),
         "id": video_id,
-        "channelName": parse(r'<link itemprop="name" content="(.+?)">', html_raw),
-        "channelURL": "https://www.youtube.com/channel/" + parse(r'<meta itemprop="channelId" content="(.+?)">|browseId":"(\w{24})"', html_raw),
+        "channelName": channel_name,
+        "channelURL": f"https://www.youtube.com/channel/{channel_id}",
         "description": parse(r'"description":{"simpleText":"(.+?)"},', html_raw).replace("\\n", "\n") if '"description":{"simpleText":"' in html_raw else "",
         "thumbnail": get_image(thumbnail_url),
         "thumbnailUrl": thumbnail_url,
         "startTimestamp": parse(r'"startTimestamp":"(.+?)"', html_raw)
     }
+
 
 def get_image(url):
     with utils.urlopen(url) as response:
@@ -61,6 +62,7 @@ def get_image(url):
         b64 = base64.b64encode(data).decode()
 
         return f"data:image/jpeg;base64,{b64}"
+
 
 def build_req(video_id, use_cookie=False):
     video_url = f"https://www.youtube.com/watch?v={video_id}"
@@ -73,7 +75,7 @@ def build_req(video_id, use_cookie=False):
     return utils.urlopen(info_req, use_cookie=use_cookie)
 
 
-def get_json(video_url, file=None, require_cookie=False):
+def get_json(video_url, channel_id, channel_name, file=None, require_cookie=False):
     video_id = get_youtube_id(video_url)
 
     with build_req(video_id, require_cookie) as response:
@@ -85,7 +87,7 @@ def get_json(video_url, file=None, require_cookie=False):
         best = {
             "video": None,
             "audio": None,
-            "metadata": get_youtube_video_info(video_id, data),
+            "metadata": get_youtube_video_info(video_id, channel_id, channel_name, data),
             "version": VERSION,
             "createTime": datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat()
         }

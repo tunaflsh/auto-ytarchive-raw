@@ -2,25 +2,20 @@ import json
 import time
 import os
 import threading
-
-import chat_downloader
-
 import utils
 import getm3u8
 import getjson
-
 import const
 import text
 import private_download
 import live_download
 from urllib.error import HTTPError
-
 from addons import telegram
 from addons import discord
 from addons import pushalert
 from addons import fcm
-
 import traceback
+
 
 if const.CALLBACK_AFTER_EXPIRY:
     from callback import callback as expiry_callback
@@ -31,6 +26,7 @@ if const.CHAT_CALLBACK_AFTER_EXPIRY:
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
 if const.CHAT_DIR:
+    import chat_downloader
     import getchat
     global chats
     chats = {}
@@ -64,6 +60,8 @@ with open(const.CHANNELS_JSON, encoding="utf8") as f:
 
 global save_lock
 save_lock = threading.Lock()
+
+
 def save():
     global save_lock
     save_lock.acquire()
@@ -72,6 +70,7 @@ def save():
         json.dump(fetched, f, indent=4, ensure_ascii=False)
 
     save_lock.release()
+
 
 if os.path.isfile(const.FETCHED_JSON):
     with open(const.FETCHED_JSON, encoding="utf8") as f:
@@ -84,6 +83,7 @@ if os.path.isfile(const.FETCHED_JSON):
 else:
     fetched = {}
     save()
+
 
 def clear_expiry():
     utils.log(f" Running clear task.")
@@ -247,7 +247,7 @@ while True:
                     }
 
                 filepath = os.path.join(const.BASE_JSON_DIR, f"{m3u8_id}.json")
-                video_data = getjson.get_json(video_url, filepath, require_cookie)
+                video_data = getjson.get_json(video_url, channel_id, channel_name, filepath, require_cookie)
 
                 if const.CHAT_DIR:
                     if video_id not in chats:
