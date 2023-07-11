@@ -179,13 +179,12 @@ def urlopen(url, retry=0, source_address="random", use_cookie=False):
 
 
 def is_live(channel_id, use_cookie=False, retry=0):
-    url = f"https://www.youtube.com/channel/{channel_id}/live"
-    with urlopen(url, use_cookie=use_cookie) as response:
-        html = response.read().decode()
-        try:
-            og_url = re.search(
-                r'<meta property="og:url" content="(.+?)">', html).group(1)
-        except AttributeError:
+    #temporarily also use embed link to check if channel is live(unsure if embed can track all live hence loop)
+    url_1 = f"https://www.youtube.com/channel/{channel_id}/live"
+    url_2 = f"https://www.youtube.com/embed/live_stream?channel={channel_id}"
+    for i, url in enumerate([url_1, url_2]):
+        with urlopen(url, use_cookie=use_cookie) as response:
+            html = response.read().decode()
             try:
                 og_url = re.search(
                     r'<link rel="canonical" href="(.+?)">', html).group(1)
@@ -194,23 +193,28 @@ def is_live(channel_id, use_cookie=False, retry=0):
                     return is_live(channel_id, use_cookie=use_cookie, retry=retry + 1)  # Try again, sth weird happened
                 else:
                     return False, use_cookie
-
-        if "watch?v=" in og_url:
-            if 'hlsManifestUrl' not in html:
-                if '"status":"LOGIN_REQUIRED"' in html:
-                    if use_cookie:
-                        return False, use_cookie  # No permission
-                    else:
-                        # Try again with cookie
-                        return is_live(channel_id, use_cookie=True, retry=retry)
-                return False, use_cookie  # No stream found
-            return og_url, use_cookie  # Stream found
-        elif "/channel/" in og_url or "/user/" in og_url:
-            return False, use_cookie
-        else:
-            warn(
-                f" Something weird happened on checking Live for {channel_id}...")
-            return False, use_cookie
+            if "watch?v=" in og_url:
+                if 'hlsManifestUrl' not in html and i == 0:
+                    if '"status":"LOGIN_REQUIRED"' in html:
+                        if use_cookie:
+                            return False, use_cookie  # No permission
+                        else:
+                            # Try again with cookie
+                            return is_live(channel_id, use_cookie=True, retry=retry)
+                    return False, use_cookie  # No stream found
+                elif 'liveStreamOfflineSlateRenderer' in html and i == 1:
+                    # temporary means of checking if it's a scheduled stream from embed link
+                    return False, use_cookie  # No stream found
+                return og_url, use_cookie  # Stream found
+            elif i==0:
+                #issue with /live endpoint and can return /channel/ even if live hence extra elif
+                continue
+            else:
+                if "/channel/" in og_url or "/user/" in og_url:
+                    return False, use_cookie
+                else:
+                    warn(f" Something weird happened on checking Live for {channel_id}...")
+                    return False, use_cookie
 
 # 2021.5.7 Youtube chokes for PlayabilityStatus.REMOVED
 # if PlayabilityStatus.REMOVED, we now check 3 times for accuracy.
