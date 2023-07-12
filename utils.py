@@ -193,6 +193,7 @@ def is_live(channel_id, use_cookie=False, retry=0):
                     return is_live(channel_id, use_cookie=use_cookie, retry=retry + 1)  # Try again, sth weird happened
                 else:
                     return False, use_cookie
+
             if "watch?v=" in og_url:
                 if 'hlsManifestUrl' not in html and i == 0:
                     if '"status":"LOGIN_REQUIRED"' in html:
@@ -202,12 +203,21 @@ def is_live(channel_id, use_cookie=False, retry=0):
                             # Try again with cookie
                             return is_live(channel_id, use_cookie=True, retry=retry)
                     return False, use_cookie  # No stream found
-                elif i == 1 and re.search(r'default_live\..{3,4}', html) is None:
-                    # temporary means of checking if first video in the playlist is a live video based on live thumbnail
-                    return False, use_cookie  # No stream found
-                return og_url, use_cookie  # Stream found
+                elif i == 1:
+                    # temporary means of checking if first video in the playlist is a live video based on live thumbnail or is a scheduled stream
+                    if re.search(r'default_live\..{3,4}', html) is None or "LIVE_STREAM_OFFLINE" in html:
+                        return False, use_cookie  # No stream found
+                    
+                    if '"status":"LOGIN_REQUIRED"' in html:
+                        if use_cookie:
+                            return False, use_cookie  # No permission
+                        else:
+                            # Try again with cookie
+                            return is_live(channel_id, use_cookie=True, retry=retry)
+                    return og_url, use_cookie  # Stream found
+                return og_url, use_cookie
             elif i==0:
-                #issue with /live endpoint and can return /channel/ even if live hence extra elif
+                #issue with /live endpoint and can return /channel/ even if live hence continue until embed url is used
                 continue
             else:
                 if "/channel/" in og_url or "/user/" in og_url:
