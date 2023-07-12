@@ -179,9 +179,9 @@ def urlopen(url, retry=0, source_address="random", use_cookie=False):
 
 
 def is_live(channel_id, use_cookie=False, retry=0):
-    #temporarily also use embed link to check if channel is live(unsure if embed can track all live hence loop)
+    #temporarily also use embed channel playlist link to check if channel is live(unsure if embed can track all live hence loop)
     url_1 = f"https://www.youtube.com/channel/{channel_id}/live"
-    url_2 = f"https://www.youtube.com/embed/live_stream?channel={channel_id}"
+    url_2 = f"https://www.youtube.com/embed?list=UU{channel_id[2:]}"
     for i, url in enumerate([url_1, url_2]):
         with urlopen(url, use_cookie=use_cookie) as response:
             html = response.read().decode()
@@ -202,8 +202,8 @@ def is_live(channel_id, use_cookie=False, retry=0):
                             # Try again with cookie
                             return is_live(channel_id, use_cookie=True, retry=retry)
                     return False, use_cookie  # No stream found
-                elif 'liveStreamOfflineSlateRenderer' in html and i == 1:
-                    # temporary means of checking if it's a scheduled stream from embed link
+                elif i == 1 and re.search(r'default_live\..{3,4}', html) is None:
+                    # temporary means of checking if first video in the playlist is a live video based on live thumbnail
                     return False, use_cookie  # No stream found
                 return og_url, use_cookie  # Stream found
             elif i==0:
