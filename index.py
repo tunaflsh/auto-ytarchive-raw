@@ -179,7 +179,8 @@ while True:
                             continue
                         if status is utils.PlayabilityStatus.ON_LIVE:
                             continue
-
+                        if status is utils.PlayabilityStatus.LOGIN_REQUIRED:
+                            continue
                         if status is utils.PlayabilityStatus.OFFLINE:
                             continue
 
@@ -206,7 +207,7 @@ while True:
                             private_download.download(files)
 
             try:
-                is_live, require_cookie = utils.is_live(channel_id)
+                is_live = utils.is_live(channel_id)
             except Exception as e:
                 print(e)
                 print("[ERROR] Unexpected Error while checking if channel is live")
@@ -219,7 +220,7 @@ while True:
 
                 video_id = getjson.get_youtube_id(video_url)
                 try:
-                    m3u8_url = getm3u8.get_m3u8(video_url)
+                    m3u8_url, require_cookie = getm3u8.get_m3u8(video_url)
                 except Exception as e:
                     print(e)
                     print("\n[ERROR] Unexpected error, might not be live, Skip saving json")
@@ -260,6 +261,8 @@ while True:
                             fetched[channel_name][video_id]["chat"] = chat_file
                         except chat_downloader.errors.NoChatReplay:
                             print("[ERROR] Error getting chat. Maybe live already ended...?")
+                        except chat_downloader.errors.VideoUnavailable as unavailableError:
+                            print(f"[ERROR] {unavailableError}")
 
                 if not fetched[channel_name][video_id]["skipOnliveNotify"]:
                     onlive_message = text.get_onlive_message(video_id=video_id).format(video_id=video_id, channel_name=channel_name, channel_id=channel_id)

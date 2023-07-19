@@ -179,52 +179,30 @@ def urlopen(url, retry=0, source_address="random", use_cookie=False):
 
 
 def is_live(channel_id, use_cookie=False, retry=0):
-    #temporarily also use embed channel playlist link to check if channel is live(unsure if embed can track all live hence loop)
-    url_1 = f"https://www.youtube.com/channel/{channel_id}/live"
-    url_2 = f"https://www.youtube.com/embed?list=UU{channel_id[2:]}"
-    for i, url in enumerate([url_1, url_2]):
-        with urlopen(url, use_cookie=use_cookie) as response:
-            html = response.read().decode()
-            try:
-                og_url = re.search(
-                    r'<link rel="canonical" href="(.+?)">', html).group(1)
-            except:
-                if retry < const.HTTP_RETRY:
-                    return is_live(channel_id, use_cookie=use_cookie, retry=retry + 1)  # Try again, sth weird happened
-                else:
-                    return False, use_cookie
-
-            if "watch?v=" in og_url:
-                if 'hlsManifestUrl' not in html and i == 0:
-                    if '"status":"LOGIN_REQUIRED"' in html:
-                        if use_cookie:
-                            return False, use_cookie  # No permission
-                        else:
-                            # Try again with cookie
-                            return is_live(channel_id, use_cookie=True, retry=retry)
-                    return False, use_cookie  # No stream found
-                elif i == 1:
-                    # temporary means of checking if first video in the playlist is a live video based on live thumbnail or is a scheduled stream
-                    if re.search(r'default_live\..{3,4}', html) is None or "LIVE_STREAM_OFFLINE" in html:
-                        return False, use_cookie  # No stream found
-                    
-                    if '"status":"LOGIN_REQUIRED"' in html:
-                        if use_cookie:
-                            return False, use_cookie  # No permission
-                        else:
-                            # Try again with cookie
-                            return is_live(channel_id, use_cookie=True, retry=retry)
-                    return og_url, use_cookie  # Stream found
-                return og_url, use_cookie
-            elif i==0:
-                #issue with /live endpoint and can return /channel/ even if live hence continue until embed url is used
-                continue
+    # Use /streams instead of embed playlist
+    # Naively try to get video id based on fact that id will be in live thumbnail url and live keyword is always in the url
+    url = f"https://www.youtube.com/channel/{channel_id}/streams?view=2&flow=list"
+    # url_1 = f"https://www.youtube.com/embed?list=UU{channel_id[2:]}"
+    with urlopen(url, use_cookie=use_cookie) as response:
+        html = response.read().decode()
+        try:
+            og_url_re = re.search(
+                r'{"url":"https://[^\"]+/([^\"&?/\s]{11})/[^\"&?/\s]+live\.[a-z]{3,4}', html)
+            og_url = f"https://www.youtube.com/watch?v={og_url_re.group(1)}"
+            return og_url
+        except AttributeError:
+            return False
+        except:
+            if retry < const.HTTP_RETRY:
+                return is_live(channel_id, use_cookie=use_cookie, retry=retry + 1)  # Try again, sth weird happened
             else:
-                if "/channel/" in og_url or "/user/" in og_url:
-                    return False, use_cookie
-                else:
-                    warn(f" Something weird happened on checking Live for {channel_id}...")
-                    return False, use_cookie
+                return False
+        if "/channel/" in og_url or "/user/" in og_url:
+            return False
+        else:
+            warn(
+                f" Something weird happened on checking Live for {channel_id}...")
+            return False
 
 # 2021.5.7 Youtube chokes for PlayabilityStatus.REMOVED
 # if PlayabilityStatus.REMOVED, we now check 3 times for accuracy.

@@ -3,21 +3,22 @@ import utils
 
 
 def get_m3u8(url):
+    use_cookie=False
     try:
-        with utils.urlopen(url, use_cookie=False) as response:
+        with utils.urlopen(url, use_cookie=use_cookie) as response:
             html = response.read().decode()
             regex = r"hlsManifestUrl\":\"([^\"]+)"
             result = re.search(regex, html).group(1)   
     except AttributeError as att_error:
-        with utils.urlopen(url, use_cookie=True) as response:
+        use_cookie=True
+        with utils.urlopen(url, use_cookie=use_cookie) as response:
             html = response.read().decode()
             regex = r"hlsManifestUrl\":\"([^\"]+)"
             try:
                 result = re.search(regex, html).group(1)
             except AttributeError as att_error:
-                print("Result: ", re.search(regex, html))
-                print(att_error)
-    return result
+                print(f"[ERROR] {att_error}")
+    return result, use_cookie
 
 
 def get_m3u8_id(m3u8_url):
