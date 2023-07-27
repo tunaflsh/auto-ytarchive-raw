@@ -181,7 +181,6 @@ def urlopen(url, retry=0, source_address="random", use_cookie=False):
 
 def is_live(channel_id, use_cookie=False, retry=0):
     # Use /streams instead of embed playlist
-    # Naively try to get video id based on fact that id will be in live thumbnail url and live keyword is always in the url
     if const.COOKIE:
         use_cookie = True
     url = f"https://www.youtube.com/channel/{channel_id}/streams"
@@ -190,21 +189,22 @@ def is_live(channel_id, use_cookie=False, retry=0):
         video_type = PlayabilityStatus.OFFLINE
         html = response.read().decode()
         try:
-            re_live = '"text":"LIVE"'
+            re_live = r'\"[a-zA-Z]+\":\"LIVE\"'
+            re_member = r'\"[a-zA-Z]+\":\"Members only\"'
             re_id = r'\"videoId\":\"([^"]+)'
 
             fragments = re.split('videoRenderer', html)
             video_url = False
             for fragment in fragments:
                 # is_live = re.search(re_live, fragment)
-                is_live_text = True if re_live in fragment else False
+                is_live_text = True if re.search(re_live, fragment) else False
                 if not is_live_text:
                     continue
 
                 video_id = re.search(re_id, fragment)
                 video_url = f"https://www.youtube.com/watch?v={video_id[1]}"
                 video_type = PlayabilityStatus.ON_LIVE
-                if '"label":"Members only"' in fragment:
+                if re.search(re_member, fragment):
                     video_type = PlayabilityStatus.MEMBERS_ONLY
             return video_url, video_type
         except AttributeError:
@@ -229,20 +229,21 @@ def is_premiere(channel_id, use_cookie=False, retry=0):
         video_type = PlayabilityStatus.OFFLINE
         html = response.read().decode()
         try:
-            re_live = '"style":"LIVE"'
+            re_live = r'\"[a-zA-Z]+\":\"LIVE\"'
+            re_premiere = r'\"[a-zA-Z]+\":\"Premiere\"'
             re_id = r'\"videoId\":\"([^"]+)'
 
             fragments = re.split('videoRenderer', html)
             video_url = False
             for fragment in fragments:
-                is_live_text = True if re_live in fragment else False
+                is_live_text = True if re.search(re_live, fragment) else False
                 if not is_live_text:
                     continue
 
                 video_id = re.search(re_id, fragment)
                 video_url = f"https://www.youtube.com/watch?v={video_id[1]}"
                 video_type = PlayabilityStatus.ON_LIVE
-                if '"label":"Premiere"' in fragment:
+                if re.search(re_premiere, fragment):
                     video_type = PlayabilityStatus.PREMIERE
             return video_url, video_type
         except AttributeError:
