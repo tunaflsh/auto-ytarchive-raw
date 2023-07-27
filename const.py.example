@@ -24,12 +24,13 @@ ENABLE_PRIVATE_CHECK = False
 
 # Enable Live stream download
 # Replace None with file path e.g. DOWNLOAD = r"H:\DownloadArchive\%(channel)s\%(upload_date)s - %(title)s\%(upload_date)s - %(title)s (%(id)s)"
-# Note kethar's format template for live download(DOWNLOAD) may differ from pekopeko's format template(PDOWNLOAD)
 DOWNLOAD = None
-PDOWNLOAD = None
+MEMBER_DOWNLOAD = None
+PREMIERE_DOWNLOAD = None
+PRIVATED_DOWNLOAD = None
 
 # Number of threads for pekopeko's ytarchive-raw-go
-PDOWNLOAD_THREADS = 24
+PRIVATED_DOWNLOAD_THREADS = 24
 
 # Callbacks
 ENABLED_MODULES = {
@@ -55,6 +56,8 @@ ENABLED_MODULES_ONLIVE = {
 }
 
 DISCORD_WEBHOOK_URL_ONLIVE = None
+DISCORD_WEBHOOK_URL_MEMBERS = None
+DISCORD_WEBHOOK_URL_PREMIERE = None
 
 TELEGRAM_BOT_TOKEN_ONLIVE = TELEGRAM_BOT_TOKEN
 TELEGRAM_CHAT_ID_ONLIVE = None

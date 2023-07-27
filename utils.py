@@ -39,6 +39,7 @@ class PlayabilityStatus(Enum):
     UNKNOWN = auto()
     LOGIN_REQUIRED = auto()
     UNLISTED = auto()
+    PREMIERE = auto()
 
 
 class RepeatedTimer(object):
@@ -71,8 +72,8 @@ class BoundHTTPHandler(urllib.request.HTTPHandler):
     def __init__(self, *args, source_address=None, **kwargs):
         urllib.request.HTTPHandler.__init__(self, *args, **kwargs)
         self.http_class = functools.partial(http.client.HTTPConnection,
-                source_address=source_address,
-                timeout=5)
+                                            source_address=source_address,
+                                            timeout=5)
 
     def http_open(self, req):
         return self.do_open(self.http_class, req)
@@ -82,12 +83,12 @@ class BoundHTTPSHandler(urllib.request.HTTPSHandler):
     def __init__(self, *args, source_address=None, **kwargs):
         urllib.request.HTTPSHandler.__init__(self, *args, **kwargs)
         self.https_class = functools.partial(http.client.HTTPSConnection,
-                source_address=source_address,
-                timeout=5)
+                                             source_address=source_address,
+                                             timeout=5)
 
     def https_open(self, req):
         return self.do_open(self.https_class, req,
-                context=self._context, check_hostname=self._check_hostname)
+                            context=self._context, check_hostname=self._check_hostname)
 
 
 def get_random_line(filepath: str) -> str:
@@ -116,7 +117,7 @@ def is_ip(ip):
 def get_pool_ip():
     if const.IP_POOL:
         if os.path.isfile(const.IP_POOL):
-            for _ in range(3): # Retry for 3 times.
+            for _ in range(3):  # Retry for 3 times.
                 ip = get_random_line(const.IP_POOL).rstrip().lstrip()
                 if is_ip(ip):
                     return ip
@@ -131,14 +132,14 @@ def urlopen(url, retry=0, source_address="random", use_cookie=False):
             source_address = get_pool_ip()
         if not is_ip(source_address):
             source_address = None
-        
+
         if use_cookie:
             if hasattr(const, "COOKIE") and const.COOKIE and os.path.isfile(const.COOKIE):
                 cj = http.cookiejar.MozillaCookieJar()
                 cj.load(const.COOKIE)
                 cookie_handler = urllib.request.HTTPCookieProcessor(cj)
                 handlers.append(cookie_handler)
-            
+
         if source_address:
             log(f" Using IP: {source_address}")
             scheme = "https"
@@ -149,7 +150,7 @@ def urlopen(url, retry=0, source_address="random", use_cookie=False):
 
             handler = (BoundHTTPHandler if scheme == "http" else BoundHTTPSHandler)(source_address=(source_address, 0))
             handlers.append(handler)
-        
+
         if handlers:
             return urllib.request.build_opener(*handlers).open(url)
         else:
@@ -181,28 +182,80 @@ def urlopen(url, retry=0, source_address="random", use_cookie=False):
 def is_live(channel_id, use_cookie=False, retry=0):
     # Use /streams instead of embed playlist
     # Naively try to get video id based on fact that id will be in live thumbnail url and live keyword is always in the url
-    url = f"https://www.youtube.com/channel/{channel_id}/streams?view=2&flow=list"
+    if const.COOKIE:
+        use_cookie = True
+    url = f"https://www.youtube.com/channel/{channel_id}/streams"
     # url_1 = f"https://www.youtube.com/embed?list=UU{channel_id[2:]}"
     with urlopen(url, use_cookie=use_cookie) as response:
+        video_type = PlayabilityStatus.OFFLINE
         html = response.read().decode()
         try:
-            og_url_re = re.search(
-                r'{"url":"https://[^\"]+/([^\"&?/\s]{11})/[^\"&?/\s]+live\.[a-z]{3,4}', html)
-            og_url = f"https://www.youtube.com/watch?v={og_url_re.group(1)}"
-            return og_url
+            re_live = '"text":"LIVE"'
+            re_id = r'\"videoId\":\"([^"]+)'
+
+            fragments = re.split('videoRenderer', html)
+            video_url = False
+            for fragment in fragments:
+                # is_live = re.search(re_live, fragment)
+                is_live_text = True if re_live in fragment else False
+                if not is_live_text:
+                    continue
+
+                video_id = re.search(re_id, fragment)
+                video_url = f"https://www.youtube.com/watch?v={video_id[1]}"
+                video_type = PlayabilityStatus.ON_LIVE
+                if '"label":"Members only"' in fragment:
+                    video_type = PlayabilityStatus.MEMBERS_ONLY
+            return video_url, video_type
         except AttributeError:
-            return False
-        except:
+            return False, video_type
+        except Exception as e:
+            print(e)
             if retry < const.HTTP_RETRY:
                 return is_live(channel_id, use_cookie=use_cookie, retry=retry + 1)  # Try again, sth weird happened
             else:
-                return False
-        if "/channel/" in og_url or "/user/" in og_url:
-            return False
-        else:
-            warn(
-                f" Something weird happened on checking Live for {channel_id}...")
-            return False
+                warn(
+                    f" Something weird happened on checking Live for {channel_id}...")
+                return False, video_type
+
+
+def is_premiere(channel_id, use_cookie=False, retry=0):
+    # Use /videos instead of embed playlist
+    # As of 2023.07.25 premieres can not be set to member's only
+    # if const.COOKIE:
+    #     use_cookie = True
+    url = f"https://www.youtube.com/channel/{channel_id}/videos"
+    with urlopen(url, use_cookie=use_cookie) as response:
+        video_type = PlayabilityStatus.OFFLINE
+        html = response.read().decode()
+        try:
+            re_live = '"style":"LIVE"'
+            re_id = r'\"videoId\":\"([^"]+)'
+
+            fragments = re.split('videoRenderer', html)
+            video_url = False
+            for fragment in fragments:
+                is_live_text = True if re_live in fragment else False
+                if not is_live_text:
+                    continue
+
+                video_id = re.search(re_id, fragment)
+                video_url = f"https://www.youtube.com/watch?v={video_id[1]}"
+                video_type = PlayabilityStatus.ON_LIVE
+                if '"label":"Premiere"' in fragment:
+                    video_type = PlayabilityStatus.PREMIERE
+            return video_url, video_type
+        except AttributeError:
+            return False, video_type
+        except Exception as e:
+            print(e)
+            if retry < const.HTTP_RETRY:
+                return is_live(channel_id, use_cookie=use_cookie, retry=retry + 1)  # Try again, sth weird happened
+            else:
+                warn(
+                    f" Something weird happened on checking Live for {channel_id}...")
+                return False, video_type
+
 
 # 2021.5.7 Youtube chokes for PlayabilityStatus.REMOVED
 # if PlayabilityStatus.REMOVED, we now check 3 times for accuracy.
@@ -226,6 +279,8 @@ def get_video_status(video_id):
                 return PlayabilityStatus.PRIVATED
             elif '"status":"ERROR"' in html:
                 return PlayabilityStatus.REMOVED
+            elif '"simpleText":"Premiere' in html:
+                return PlayabilityStatus.PREMIERE
             elif '"status":"OK"' in html:
                 if '"isUnlisted":true' in html:
                     return PlayabilityStatus.UNLISTED
@@ -238,7 +293,7 @@ def get_video_status(video_id):
                 with open(os.path.join(const.LOGS_DIR, f"{video_id}.html"), "w", encoding="utf8") as f:
                     f.write(html)
                 return PlayabilityStatus.UNKNOWN
-    
+
     status = _get_video_status(video_id)
     if status is PlayabilityStatus.REMOVED:
         for _ in range(3):
@@ -259,6 +314,7 @@ def notify(message, files=None):
             threading.Thread(target=telegram.send_files, args=(const.TELEGRAM_BOT_TOKEN, const.TELEGRAM_CHAT_ID, message, files), daemon=True).start()
         else:
             threading.Thread(target=telegram.send, args=(const.TELEGRAM_BOT_TOKEN, const.TELEGRAM_CHAT_ID, message), daemon=True).start()
+
 
 def get_avatar(url):
     regex = r'"avatar":{"thumbnails":(\[{[^\]]+?\])}'

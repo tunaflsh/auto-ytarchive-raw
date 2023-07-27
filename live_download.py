@@ -1,17 +1,23 @@
 import subprocess
 import const
+import utils
 
 
-def download(video_id, require_cookie):
+def download(video_id, live_status):
     setDownloaded = False
     # Download if download process hasn't already been initiated
-    # change back to /k
     command_list = ['start', f'ytarchive {video_id}', '/min', 'cmd', '/c']
     command_list += ['ytarchive.exe', '-v']
-    if require_cookie and const.COOKIE:
+    if live_status == utils.PlayabilityStatus.LOGIN_REQUIRED and const.COOKIE is not None:
         command_list += ['-c', const.COOKIE]
-    command_list += ['-o', const.DOWNLOAD,
-                     '--add-metadata', '-t', '--vp9', '--mkv', '--write-description', '--write-thumbnail', '--threads', '2',
+    if live_status == utils.PlayabilityStatus.MEMBERS_ONLY and const.MEMBER_DOWNLOAD is not None:
+        command_list += ['-c', const.COOKIE]
+        command_list += ['-o', const.MEMBER_DOWNLOAD]
+    elif live_status == utils.PlayabilityStatus.PREMIERE:
+        command_list += ['-o', const.PREMIERE_DOWNLOAD]
+    else:
+        command_list += ['-o', const.DOWNLOAD]
+    command_list += ['--add-metadata', '-t', '--vp9', '--mkv', '--write-description', '--write-thumbnail', '--threads', '2',
                      '-w']
     command_list += [f'https://www.youtube.com/watch?v={video_id}', 'best']
 

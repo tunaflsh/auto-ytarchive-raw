@@ -19,7 +19,7 @@ def get_private_check_text(status, video_id=None):
     elif status is utils.PlayabilityStatus.UNKNOWN:
         return "[{video_id}](https://youtu.be/{video_id}) something weird occurred on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
     elif status is utils.PlayabilityStatus.MEMBERS_ONLY:
-        return "[{video_id}](https://youtu.be/{video_id}) is member-only on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
+        return "[{video_id}](https://youtu.be/{video_id}) is members only on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
     elif status is utils.PlayabilityStatus.LOGIN_REQUIRED:
         return "[{video_id}](https://youtu.be/{video_id}) requires login on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
     elif status is utils.PlayabilityStatus.OFFLINE: # Should not be here though. But I do dumb things.
@@ -30,8 +30,15 @@ def get_private_check_text(status, video_id=None):
         return "[{video_id}](https://youtu.be/{video_id}) something very weird occurred on [{channel_name}](https://www.youtube.com/channel/{channel_id})."
 
 
-def get_onlive_message(video_id):
-    return "[{video_id}](https://youtu.be/{video_id}) is live on [{channel_name}](https://www.youtube.com/channel/{channel_id})!"
+def get_onlive_message(live_status, video_id=None):
+    if live_status is utils.PlayabilityStatus.ON_LIVE:
+        return "[{video_id}](https://youtu.be/{video_id}) is live at [{channel_name}](https://www.youtube.com/channel/{channel_id})!"
+    elif live_status is utils.PlayabilityStatus.MEMBERS_ONLY:
+        return "[{video_id}](https://youtu.be/{video_id}) has a members only live at [{channel_name}](https://www.youtube.com/channel/{channel_id})!"
+    elif live_status is utils.PlayabilityStatus.LOGIN_REQUIRED:
+        return "[{video_id}](https://youtu.be/{video_id}) is live at [{channel_name}](https://www.youtube.com/channel/{channel_id})!"
+    else:
+        return "[{video_id}](https://youtu.be/{video_id}) is live at [{channel_name}](https://www.youtube.com/channel/{channel_id})!"
 
 
 # If you leave this empty it will not posts the multiple manifest messages

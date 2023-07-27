@@ -9,7 +9,7 @@ def get_m3u8(url):
             html = response.read().decode()
             regex = r"hlsManifestUrl\":\"([^\"]+)"
             result = re.search(regex, html).group(1)   
-    except AttributeError as att_error:
+    except AttributeError:
         use_cookie=True
         with utils.urlopen(url, use_cookie=use_cookie) as response:
             html = response.read().decode()

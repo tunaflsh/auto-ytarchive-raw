@@ -1,14 +1,12 @@
 from chat_downloader import ChatDownloader
 import json
 import threading
-import os
 import time
-
 import const
 import utils
 
 class ChatArchiver:
-    def __init__(self, url, output_file, start_timestamp=None):
+    def __init__(self, url, output_file, require_cookie, start_timestamp=None):
         self.url = url
         self.output_file = output_file
         with open(self.output_file, "a+", encoding="utf8") as f:
@@ -20,8 +18,10 @@ class ChatArchiver:
                 data["startTimestamp"] = start_timestamp
             data = json.dumps(data, ensure_ascii=False)
             f.write(f"# {data}\n")
-
-        self.chat = ChatDownloader().get_chat(url, message_groups='all', inactivity_timeout=const.CHAT_INACTIVITY_DURATION)
+        if require_cookie:
+            self.chat = ChatDownloader(cookies=const.COOKIE).get_chat(url, message_groups='all', inactivity_timeout=const.CHAT_INACTIVITY_DURATION)
+        else:
+            self.chat = ChatDownloader().get_chat(url, message_groups='all', inactivity_timeout=const.CHAT_INACTIVITY_DURATION)
         self.timer = utils.RepeatedTimer(const.CHAT_BUFFER_TIME, self.__save_chat)
         self.buffer = [[], []]
         self.buffer_index = 0
